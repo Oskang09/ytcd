@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/kkdai/youtube/v2"
 )
@@ -18,23 +17,22 @@ func trimmer(in string) string {
 	return strings.Trim(strings.Trim(in, "\r\n"), "\n")
 }
 
+func appendIfNotExist(slice []string, i string) []string {
+	for _, ele := range slice {
+		if ele == i {
+			return slice
+		}
+	}
+	return append(slice, i)
+}
+
 func quit(reader *bufio.Reader, err string) {
 	if err != "" {
 		log.Println(err)
 	}
 	fmt.Print("Press enter to quit")
 	reader.ReadString('\n')
-	panic(err)
-}
-
-func stringToAscii(s string) string {
-	t := make([]byte, utf8.RuneCountInString(s))
-	i := 0
-	for _, r := range s {
-		t[i] = byte(r)
-		i++
-	}
-	return string(t)
+	os.Exit(1)
 }
 
 func main() {
@@ -59,9 +57,10 @@ func main() {
 
 	possibleFormats := []string{}
 	for _, format := range video.Formats {
-		if strings.HasPrefix(format.Quality, "hd") {
-			possibleFormats = append(possibleFormats, format.Quality)
+		if format.QualityLabel == "" {
+			continue
 		}
+		possibleFormats = appendIfNotExist(possibleFormats, format.QualityLabel)
 	}
 
 	fmt.Print("Video Format ( " + strings.Join(possibleFormats, ", ") + " ): ")
