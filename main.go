@@ -55,34 +55,41 @@ func main() {
 		quit(reader, "internal error: "+err.Error())
 	}
 
+	fmt.Print("Type ( video, audio ) : ")
+	formatType, _ := reader.ReadString('\n')
+	formatType = trimmer(formatType)
+
 	possibleFormats := []string{}
-	for _, format := range video.Formats {
-		if format.QualityLabel == "" {
-			continue
-		}
-		possibleFormats = appendIfNotExist(possibleFormats, format.QualityLabel)
+	filteredFormats := video.Formats.Type(formatType + "/")
+	for _, format := range filteredFormats {
+		possibleFormats = appendIfNotExist(possibleFormats, format.Quality)
 	}
 
-	fmt.Print("Video Format ( " + strings.Join(possibleFormats, ", ") + " ): ")
+	fmt.Print("Format ( " + strings.Join(possibleFormats, ", ") + " ): ")
 	format, _ := reader.ReadString('\n')
 	format = trimmer(format)
 
-	quality := video.Formats.FindByQuality(format)
+	quality := filteredFormats.FindByQuality(format)
 	if quality == nil {
 		quit(reader, "not a valid video format, received value '"+format+"'")
 	}
 
-	log.Println(video.Title)
+	suffix := "mp4"
+	if formatType == "audio" {
+		suffix = "mp3"
+	}
 
-	filename := path.Join(wd, video.Title+".mp4")
+	filename := path.Join(wd, video.Title+"."+suffix)
 	fmt.Print("File Name ( " + filename + " ) : ")
 	inFilename, _ := reader.ReadString('\n')
 	if strings.TrimSpace(inFilename) != "" {
 		filename = trimmer(inFilename)
+		if !strings.HasSuffix(filename, "."+suffix) {
+			filename += "." + suffix
+		}
 	}
 
 	fmt.Println("Downloading : "+filename, ", From: "+videoURL)
-
 	stream, _, err := client.GetStream(video, quality)
 	if err != nil {
 		quit(reader, "internal error: "+err.Error())
